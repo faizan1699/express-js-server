@@ -1,8 +1,13 @@
 {
+  "type": "module",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.6.1",
     "express": "^5.2.1",
-    "mongodb": "^7.7.0",
-    "moongose": "^1.0.0",
+    "googleapis": "^183.0.0",
+    "mongoose": "^8.9.5",
+    "nodemailer": "^10.0.14",
     "nodemon": "^3.1.14"
   }
 }

@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import moongose from 'mongoose';
+import connectDB from './config/db/db.js';
+import routes from './routes/index.js';
 
 dotenv.config();
 
@@ -8,17 +10,13 @@ const app = express();
 
 app.use(express.json());
 
-
-moongose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected'))
-.catch((err) => console.error('MongoDB connection error:', err));
+connectDB();
 
 app.get('/', (req, res) => {
   res.send('Hello, World!');    
 });
+
+app.use('/api', routes);
 
 const PORT = process.env.PORT || 3000;
 
