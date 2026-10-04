@@ -1,13 +1,9 @@
 
-import router from 'express';
-import { createUser } from '../controllers/authController';
+import { Router } from 'express';
+import { createUser } from '../controllers/authController.js';
 
-const routes = router();
+const routes = Router();
 
-
-
-routes.post("/register", createUser);
-
+routes.post('/register', createUser);
 
 export default routes;
-

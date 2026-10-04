@@ -1,5 +1,5 @@
-import bcrypt from "bcryptjs";
-import Users from "../models/users/users-modal"
+import bcrypt from 'bcrypt';
+import Users from '../models/users/users-modal.js';
 
 const createUser = async (req, res) => {
 
@@ -14,9 +14,9 @@ const createUser = async (req, res) => {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10)
+        const hashedPassword = await bcrypt.hash(password, 10);
         
-        const newUser = new Users.create({
+        const newUser = new Users({
             name,
             email,
             password: hashedPassword

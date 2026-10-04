@@ -3,7 +3,7 @@
 import mongoose from "mongoose";
 
 
-const userScheema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true
@@ -23,6 +23,6 @@ const userScheema = new mongoose.Schema({
     }
 })
 
-const Users = mongoose.model('Users', userScheema);
+const Users = mongoose.model('Users', userSchema);
 
-module.exports = Users;
+export default Users;
