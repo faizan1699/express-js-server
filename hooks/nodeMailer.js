@@ -20,9 +20,6 @@ const sendRegisterOtp = async (email, name, otp, isForgotPassword = false) => {
             throw new Error('Email is required to send OTP');
         }
 
-        if (!email) {
-            throw new Error('Email is required to send OTP');
-        }
         if (!otp) {
             throw new Error('OTP is required to send OTP');
         }
