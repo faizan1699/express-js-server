@@ -2,10 +2,12 @@
   "type": "module",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "crypto": "^1.0.1",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "googleapis": "^183.0.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.9.5",
     "nodemailer": "^10.0.14",
     "nodemon": "^3.1.14"

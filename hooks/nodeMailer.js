@@ -13,27 +13,30 @@ const transporter = async (options) => {
 };
 
 
-const sendRegisterOtp = async (email, name, otp) => {
-    if (!email) {
-        throw new Error('Email is required to send OTP');
-    }
+const sendRegisterOtp = async (email, name, otp, isForgotPassword = false) => {
 
-    if (!email) {
-        throw new Error('Email is required to send OTP');
-    }
-    if (!otp) {
-        throw new Error('OTP is required to send OTP');
+    if (!isForgotPassword) {
+        if (!email) {
+            throw new Error('Email is required to send OTP');
+        }
+
+        if (!email) {
+            throw new Error('Email is required to send OTP');
+        }
+        if (!otp) {
+            throw new Error('OTP is required to send OTP');
+        }
     }
 
     try {
         await transporter({
             from: `"express app" <${process.env.SMTP_USER}>`,
             to: email,
-            subject: "Email Verification OTP",
+            subject: isForgotPassword ? "Forgot Password OTP" : "Email Verification OTP",
             html: `
         <h2>Hello ${name}</h2>
 
-        <p>Your email verification OTP is:</p>
+        <p>Your ${isForgotPassword ? "forgot password" : "email verification"} OTP is:</p>
 
         <h1>${otp}</h1>
 
