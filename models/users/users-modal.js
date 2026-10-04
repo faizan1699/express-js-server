@@ -17,9 +17,16 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    otp: {
+        type: String,
+        required: false,
+        length: 6,
+        select: false
+    },
     password: {
         type: String,
-        required: true
+        required: true,
+        select: false
     }
 })
 

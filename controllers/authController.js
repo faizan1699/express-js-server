@@ -1,34 +1,45 @@
 import bcrypt from 'bcrypt';
 import Users from '../models/users/users-modal.js';
+import sendRegisterOtp from '../hooks/nodeMailer.js';
+import { getOTP, validateFields } from "../hooks/hook.js";
+
+const otp = getOTP();
 
 const createUser = async (req, res) => {
-
     try {
+        const reqBody = req.body ?? {};
+        const { name, email, password } = reqBody;
 
-        const {name, email, password} = req.body;
+        const requiredFields = ['name', 'email', 'password'];
+        const validationResult = validateFields(reqBody, requiredFields);
 
-        const existingUser = await Users.findOne({email});
-        if(existingUser) {
+        if (!validationResult.valid) {
+            return res.status(400).json({
+                message: validationResult.message
+            });
+        }
+
+        const existingUser = await Users.findOne({ email });
+        if (existingUser) {
             return res.status(200).json({
                 message: 'User already exists'
             });
         }
-
         const hashedPassword = await bcrypt.hash(password, 10);
-        
         const newUser = new Users({
             name,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            otp: otp,
         })
-
         await newUser.save();
 
-        res.status(201).json({
-            message: 'User created successfully and please verify your email',
-            user: newUser
-        });
+        await sendRegisterOtp(email, name, otp);
 
+        res.status(200).json({
+            message: 'User created successfully and please verify your email',
+            status: true
+        });
     }
     catch (error) {
         res.status(500).json({
@@ -36,7 +47,99 @@ const createUser = async (req, res) => {
             error: error.message
         });
     }
-
 }
 
-export {createUser}
+const verifyUser = async (req, res) => {
+    try {
+
+        const reqBody = req.body ?? {};
+        const { email, otp } = reqBody;
+
+         const requiredFields = ['email', 'otp'];
+        const validationResult = validateFields(reqBody, requiredFields);
+
+        if (!validationResult.valid) {
+            return res.status(400).json({
+                message: validationResult.message
+            });
+        }
+
+        const user = await Users.findOne({ email }).select('+otp');
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
+        if (user.otp !== otp) {
+            return res.status(400).json({
+                message: 'Invalid OTP'
+            });
+        }
+        user.otp = undefined;
+        user.emailVerified = true;
+        await user.save();
+
+        res.status(200).json({
+            message: 'User verified successfully'
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Error verifying user',
+            error: error.message
+        });
+    }
+}
+
+const getNewOtp = async (req, res) => {
+    try {
+        const reqBody = req.body ?? {};
+        const { email } = reqBody;
+        const requiredFields = ['email'];
+        const validationResult = validateFields(reqBody, requiredFields);
+
+        if (!validationResult.valid) {
+            return res.status(400).json({
+                message: validationResult.message
+            });
+        }
+
+        const user = await Users.findOne({ email });
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
+
+        if(user.emailVerified) {
+            return res.status(400).json({
+                message: 'Login Pls'
+            });
+        }
+
+        const newOtp = getOTP();
+        user.otp = newOtp;
+        await user.save();
+
+        await sendRegisterOtp(email, user.name, newOtp);
+
+        res.status(200).json({
+            message: 'New OTP sent successfully'
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Error generating new OTP',
+            error: error.message
+        });
+    }
+}
+
+const 
+
+
+export {
+    createUser,
+    verifyUser,
+    getNewOtp
+}

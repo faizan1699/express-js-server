@@ -1,9 +1,15 @@
 
 import { Router } from 'express';
-import { createUser } from '../controllers/authController.js';
+import {
+    createUser,
+    getNewOtp,
+    verifyUser
+} from '../controllers/authController.js';
 
 const routes = Router();
 
-routes.post('/register', createUser);
+routes.post('/signup', createUser);
+routes.post('/verify-otp', verifyUser);
+routes.post('/resend-otp', getNewOtp);
 
 export default routes;
