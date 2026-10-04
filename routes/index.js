@@ -13,4 +13,5 @@ routes.post('/signup', validateRequestFields(['name', 'email', 'password']), cre
 routes.post('/verify-otp', validateRequestFields(['email', 'otp']), verifyUser);
 routes.post('/resend-otp', validateRequestFields(['email']), getNewOtp);
 
+
 export default routes;

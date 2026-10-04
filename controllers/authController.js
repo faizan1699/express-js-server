@@ -40,6 +40,51 @@ const createUser = async (req, res) => {
     }
 }
 
+const loginUser = async (req, res) => {
+
+    try {
+
+        const reqBody = req.body ?? {};
+        const { email, password } = reqBody;
+        
+        const user = await Users.findOne({ email }).select('+password');
+
+        if(!user) {
+            res.status(404).json({
+                message: "User not found",
+                status: false
+            })
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if(!isPasswordValid) {
+            res.status(401).json({
+                message: "invalid credentials",
+                status: false
+            })
+        }
+
+        const token = bcrypt.hashSync(user.email + user.password, 10);
+
+        res.status(200).json({
+            message: "You are logged in successfully",
+            status: true,
+            user: user,
+            token: token
+        } , {
+            success: true,
+        })
+
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Error logging in user',
+            error: error.message
+        });
+    }
+
+}
+
 const verifyUser = async (req, res) => {
     try {
 
@@ -111,5 +156,6 @@ const getNewOtp = async (req, res) => {
 export {
     createUser,
     verifyUser,
-    getNewOtp
+    getNewOtp,
+    loginUser
 }
