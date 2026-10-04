@@ -23,7 +23,7 @@ const getJwtSecret = (secretName, fallback) => {
 const createAccessToken = (userId) => jwt.sign(
     { sub: userId, type: 'access' },
     getJwtSecret('JWT_ACCESS_SECRET', process.env.JWT_SECRET),
-    { expiresIn: '15m' }
+    { expiresIn: '1000m' }
 );
 
 const createRefreshToken = (userId) => jwt.sign(
@@ -74,7 +74,7 @@ const loginUser = async (req, res) => {
 
         const reqBody = req.body ?? {};
         const { email, password } = reqBody;
-        
+
         const user = await Users.findOne({ email }).select('+password');
 
         if (!user) {
@@ -100,7 +100,7 @@ const loginUser = async (req, res) => {
         }
 
         const userId = user._id.toString();
-        const accessToken = createAccessToken(userId);
+        const token = createAccessToken(userId);
         const refreshToken = createRefreshToken(userId);
 
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
@@ -112,7 +112,8 @@ const loginUser = async (req, res) => {
                 name: user.name,
                 email: user.email
             },
-            accessToken
+            token,
+            refreshToken
         });
 
     }
@@ -251,10 +252,45 @@ const getNewOtp = async (req, res) => {
     }
 }
 
+const forgotPasswordOtpSend = async (req, res) => {
+    try {
+        const reqBody = req.body ?? {};
+        const { email } = reqBody;
+
+        const user = await Users.findOne({ email });
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
+
+        const newOtp = getOTP();
+        user.forgotPasswordOtp = newOtp;
+        await user.save();
+
+        await sendRegisterOtp(email, user.name, newOtp, true);
+
+        res.status(200).json({
+            message: 'Forgot password OTP sent successfully',
+            success: true
+        } , {
+            success: true
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error processing forgot password request',
+            error: error.message
+        });
+    }
+}
+
+
 export {
     createUser,
     verifyUser,
     getNewOtp,
+    forgotPasswordOtpSend,
     loginUser,
     refreshAccessToken
 }

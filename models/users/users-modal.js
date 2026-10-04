@@ -23,6 +23,12 @@ const userSchema = new mongoose.Schema({
         length: 6,
         select: false
     },
+    forgotPasswordOtp: {
+        type: String,
+        required: false,
+        length: 6,
+        select: false
+    },
     password: {
         type: String,
         required: true,
