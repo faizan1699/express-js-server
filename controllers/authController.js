@@ -1,14 +1,42 @@
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import Users from '../models/users/users-modal.js';
 import sendRegisterOtp from '../hooks/nodeMailer.js';
 import { getOTP } from "../hooks/hook.js";
 
-const otp = getOTP();
+const getRefreshCookieOptions = () => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/api/refresh-token',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+});
+
+const getJwtSecret = (secretName, fallback) => {
+    const secret = process.env[secretName] || fallback;
+    if (!secret) {
+        throw new Error(`${secretName} is not configured`);
+    }
+    return secret;
+};
+
+const createAccessToken = (userId) => jwt.sign(
+    { sub: userId, type: 'access' },
+    getJwtSecret('JWT_ACCESS_SECRET', process.env.JWT_SECRET),
+    { expiresIn: '15m' }
+);
+
+const createRefreshToken = (userId) => jwt.sign(
+    { sub: userId, type: 'refresh' },
+    getJwtSecret('JWT_REFRESH_SECRET'),
+    { expiresIn: '7d' }
+);
 
 const createUser = async (req, res) => {
     try {
         const reqBody = req.body ?? {};
         const { name, email, password } = reqBody;
+        const otp = getOTP();
 
         const existingUser = await Users.findOne({ email });
         if (existingUser) {
@@ -49,31 +77,43 @@ const loginUser = async (req, res) => {
         
         const user = await Users.findOne({ email }).select('+password');
 
-        if(!user) {
-            res.status(404).json({
-                message: "User not found",
+        if (!user) {
+            return res.status(401).json({
+                message: "Invalid credentials",
                 status: false
-            })
+            });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
-        if(!isPasswordValid) {
-            res.status(401).json({
-                message: "invalid credentials",
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                message: "Invalid credentials",
                 status: false
-            })
+            });
         }
 
-        const token = bcrypt.hashSync(user.email + user.password, 10);
+        if (!user.emailVerified) {
+            return res.status(403).json({
+                message: 'Please verify your email before logging in',
+                status: false
+            });
+        }
 
-        res.status(200).json({
+        const userId = user._id.toString();
+        const accessToken = createAccessToken(userId);
+        const refreshToken = createRefreshToken(userId);
+
+        res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
+        return res.status(200).json({
             message: "You are logged in successfully",
             status: true,
-            user: user,
-            token: token
-        } , {
-            success: true,
-        })
+            user: {
+                id: userId,
+                name: user.name,
+                email: user.email
+            },
+            accessToken
+        });
 
     }
     catch (error) {
@@ -84,6 +124,64 @@ const loginUser = async (req, res) => {
     }
 
 }
+
+const refreshAccessToken = async (req, res) => {
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) {
+        return res.status(401).json({
+            message: 'Refresh token is required'
+        });
+    }
+
+    let refreshSecret;
+    try {
+        refreshSecret = getJwtSecret('JWT_REFRESH_SECRET');
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Refresh token configuration error',
+            error: error.message
+        });
+    }
+
+    let payload;
+    try {
+        payload = jwt.verify(refreshToken, refreshSecret);
+    } catch (error) {
+        if (error instanceof jwt.JsonWebTokenError) {
+            res.clearCookie('refreshToken', getRefreshCookieOptions());
+            return res.status(401).json({
+                message: 'Invalid or expired refresh token'
+            });
+        }
+        throw error;
+    }
+
+    if (typeof payload === 'string' || payload.type !== 'refresh' || !payload.sub) {
+        res.clearCookie('refreshToken', getRefreshCookieOptions());
+        return res.status(401).json({
+            message: 'Invalid refresh token'
+        });
+    }
+
+    try {
+        const user = await Users.findById(payload.sub).select('_id');
+        if (!user) {
+            res.clearCookie('refreshToken', getRefreshCookieOptions());
+            return res.status(401).json({
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            accessToken: createAccessToken(user._id.toString())
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Error refreshing access token',
+            error: error.message
+        });
+    }
+};
 
 const verifyUser = async (req, res) => {
     try {
@@ -157,5 +255,6 @@ export {
     createUser,
     verifyUser,
     getNewOtp,
-    loginUser
+    loginUser,
+    refreshAccessToken
 }
