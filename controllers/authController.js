@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import Users from '../models/users/users-modal.js';
 import sendRegisterOtp from '../hooks/nodeMailer.js';
-import { getOTP, validateFields } from "../hooks/hook.js";
+import { getOTP } from "../hooks/hook.js";
 
 const otp = getOTP();
 
@@ -9,15 +9,6 @@ const createUser = async (req, res) => {
     try {
         const reqBody = req.body ?? {};
         const { name, email, password } = reqBody;
-
-        const requiredFields = ['name', 'email', 'password'];
-        const validationResult = validateFields(reqBody, requiredFields);
-
-        if (!validationResult.valid) {
-            return res.status(400).json({
-                message: validationResult.message
-            });
-        }
 
         const existingUser = await Users.findOne({ email });
         if (existingUser) {
@@ -55,15 +46,6 @@ const verifyUser = async (req, res) => {
         const reqBody = req.body ?? {};
         const { email, otp } = reqBody;
 
-         const requiredFields = ['email', 'otp'];
-        const validationResult = validateFields(reqBody, requiredFields);
-
-        if (!validationResult.valid) {
-            return res.status(400).json({
-                message: validationResult.message
-            });
-        }
-
         const user = await Users.findOne({ email }).select('+otp');
         if (!user) {
             return res.status(404).json({
@@ -95,15 +77,6 @@ const getNewOtp = async (req, res) => {
     try {
         const reqBody = req.body ?? {};
         const { email } = reqBody;
-        const requiredFields = ['email'];
-        const validationResult = validateFields(reqBody, requiredFields);
-
-        if (!validationResult.valid) {
-            return res.status(400).json({
-                message: validationResult.message
-            });
-        }
-
         const user = await Users.findOne({ email });
         if (!user) {
             return res.status(404).json({
@@ -111,7 +84,7 @@ const getNewOtp = async (req, res) => {
             });
         }
 
-        if(user.emailVerified) {
+        if (user.emailVerified) {
             return res.status(400).json({
                 message: 'Login Pls'
             });
@@ -134,9 +107,6 @@ const getNewOtp = async (req, res) => {
         });
     }
 }
-
-const 
-
 
 export {
     createUser,
