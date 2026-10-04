@@ -285,6 +285,55 @@ const forgotPasswordOtpSend = async (req, res) => {
     }
 }
 
+const verifyForgotPasswordOtp = async (req, res) => {
+
+    try {
+
+        const reqBody = req.body ?? {};
+        const { email, otp, password, confirmPassword } = reqBody;
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                message: 'Password and confirm password do not match',
+                success: false
+            });
+        }
+
+        const user = await Users.findOne({ email }).select('+forgotPasswordOtp');
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found',
+                success: false
+            });
+        }
+
+        const isOtpValid = user.forgotPasswordOtp === otp;
+        if (!isOtpValid) {
+            return res.status(400).json({
+                message: 'Invalid OTP or Expired OTP',
+                success: false
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user.password = hashedPassword;
+        user.forgotPasswordOtp = undefined;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Password reset successfully',
+            success: true
+        }, { success: true });
+
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Error verifying forgot password OTP',
+            error: error.message
+        });
+    }
+
+}
 
 export {
     createUser,
@@ -292,5 +341,6 @@ export {
     getNewOtp,
     forgotPasswordOtpSend,
     loginUser,
-    refreshAccessToken
+    refreshAccessToken,
+    verifyForgotPasswordOtp,
 }
