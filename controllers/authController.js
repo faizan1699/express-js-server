@@ -197,7 +197,7 @@ const verifyUser = async (req, res) => {
         }
         if (user.otp !== otp) {
             return res.status(400).json({
-                message: 'Invalid OTP'
+                message: 'Invalid OTP or Expired OTP'
             });
         }
         user.otp = undefined;
